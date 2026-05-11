@@ -135,13 +135,6 @@ vercel.json                     # Cron schedule (every 5 min)
 
 ---
 
-## The Interview Story
-
-> "I built an autonomous trading agent that runs on Deriv's demo API. Claude reasons over live EUR/USD forex data every 5 minutes, decides whether to buy, sell, or hold, explains why in plain English, and executes the trade. It remembers its last N decisions and open positions via Supabase so it doesn't over-trade. It's deployed on Vercel with a cron job and there's a live dashboard showing all trades, Claude's reasoning, and running P&L."
-
-When they ask what broke: the Deriv WebSocket auth was timing out under cold starts — fixed by adding a 15s timeout guard and a paper-only fallback mode.
-
----
 
 ## Key Links
 
