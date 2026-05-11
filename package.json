@@ -1,0 +1,31 @@
+{
+  "name": "deriv-trading-agent",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test:agent": "curl -s -X POST http://localhost:3000/api/agent | jq .",
+    "cron": "node scripts/dev-cron.mjs"
+  },
+  "dependencies": {
+    "groq-sdk": "^0.11.0",
+    "@supabase/supabase-js": "^2.43.0",
+    "next": "14.2.3",
+    "react": "^18",
+    "react-dom": "^18",
+    "recharts": "^2.12.7",
+    "ws": "^8.17.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@types/ws": "^8.5.10",
+    "typescript": "^5",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.3"
+  }
+}
