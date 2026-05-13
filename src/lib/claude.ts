@@ -27,14 +27,15 @@ You must output a SINGLE JSON object — nothing else, no markdown, no explanati
 
 Decision rules you must follow:
 - Choose action: "BUY", "SELL", or "HOLD"
-- Only enter a new trade when confidence >= 0.65. Otherwise output HOLD.
+- Only enter a new trade when confidence >= 0.55. Otherwise output HOLD.
 - If a BUY position is already open, output HOLD (don't pyramid).
 - If a SELL position is already open, output HOLD.
 - stop_loss must be set for every BUY/SELL (never null on a live trade).
 - take_profit should target a minimum 2:1 reward/risk ratio.
 - For HOLD, set entry_price, stop_loss, take_profit to null.
 - Be concise in reasoning (2-3 sentences max). Mention specific price levels or patterns.
-- Learn from past decisions: if the last 2+ trades were losses, be more conservative.`;
+- Learn from past decisions: if the last 2+ trades were losses, be more conservative.
+- confidence must reflect your actual conviction — avoid defaulting to exactly 0.5. Use the full range: 0.4 (uncertain), 0.6 (moderate), 0.75 (strong), 0.9 (very strong signal).`;
 }
 
 function buildUserPrompt(
@@ -111,7 +112,7 @@ export async function getTradeDecision(
   const response = await groq.chat.completions.create({
     model: MODEL,
     max_tokens: 512,
-    temperature: 0.2,
+    temperature: 0.4,
     response_format: { type: 'json_object' },
     messages: [
       { role: 'system', content: systemPrompt },
