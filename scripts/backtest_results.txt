@@ -1,0 +1,161 @@
+
+==============================================================
+  STEP 0 — Pulling LLM agent data from Supabase
+==============================================================
+  agent_memory rows  : 36
+  trades rows        : 1
+  closed trades      : 1
+  action breakdown   : {'HOLD': 35, 'BUY': 1}
+
+==============================================================
+  STEP 1 — Fetching EUR/USD 1-hour candles (up to 5000 periods)
+==============================================================
+  Interval: 1h (gives more history than 5-min on free tier)
+  Output size requested: 5000 candles (~7 months)
+  Candles returned   : 5000
+  Date range         : 2026-01-14 → 2026-08-11
+
+  Building features...
+  Rows after dropping NaN : 4976
+  ⚠ NOTE: Target is next-candle direction to prevent data leakage.
+  Train rows: 3980  |  Test rows: 996  (80/20 split)
+
+==============================================================
+  STEP 2 — Naive baseline (direction persistence) — PRIMARY BENCHMARK
+==============================================================
+  Strategy : predict next candle direction = current candle direction
+  Evaluated on TEST set only (last 20% of data, unseen during baseline definition)
+
+  Test set size            : 996 candles
+  % of up-candles in test  : 49.1%
+  Majority class baseline  : 50.90%  (always predict DOWN)
+  Direction persistence    : 46.59%  ← PRIMARY NAIVE BASELINE (LOCKED)
+
+  ✓ Baseline locked. Building model now.
+
+==============================================================
+  STEP 3 — Logistic regression model
+==============================================================
+  Model    : LogisticRegression (L2, C=1.0, max_iter=1000)
+  Features : ['ret_lag_1', 'ret_lag_2', 'ret_lag_3', 'ret_lag_4', 'ret_lag_5', 'rsi_norm', 'close_sma', 'hl_range', 'momentum5']
+  Scaling  : StandardScaler — fitted on TRAIN only, applied to TEST
+  NOTE     : Model fitted once. Test set NOT used for tuning.
+
+  Logistic regression accuracy (test) : 52.51%
+  Naive baseline accuracy (test)      : 46.59%
+  Majority class baseline             : 50.90%
+
+  LR vs naive baseline  : +5.92 percentage points
+  LR vs majority class  : +1.61 percentage points
+
+  LR beats naive baseline by 5.92pp. Modest improvement — interpret carefully.
+
+  Classification report (test set):
+              precision    recall  f1-score   support
+
+   DOWN/FLAT       0.52      0.93      0.66       507
+          UP       0.59      0.11      0.19       489
+
+    accuracy                           0.53       996
+   macro avg       0.55      0.52      0.43       996
+weighted avg       0.55      0.53      0.43       996
+
+  Feature importances (by absolute coefficient):
+    ret_lag_3        +0.0848  ███
+    hl_range         +0.0837  ███
+    rsi_norm         -0.0616  ██
+    ret_lag_4        +0.0356  █
+    close_sma        -0.0338  █
+    momentum5        -0.0312  █
+    ret_lag_1        -0.0174  
+    ret_lag_2        -0.0048  
+    ret_lag_5        -0.0027  
+
+==============================================================
+  STEP 4 — LLM agent secondary observation (small-sample, caveated)
+==============================================================
+  Total agent decisions : 36
+  Total trades logged   : 1  (closed: 1)
+
+  BUY/SELL decisions only (HOLD excluded — not directional) : 1
+    BUY  : 1  |  SELL : 0
+
+  Resolved outcomes (WIN/LOSS, not PENDING) : 1
+  Win rate              : 0.0%  (0/1)
+  95% Wilson CI         : [0.0%, 79.3%]  (width: 79.3pp)
+
+  ⚠  CAVEAT: With n=1, the 95% CI spans 79pp.
+     Any win-rate claim from this sample has very wide uncertainty.
+     This is an EXPLORATORY OBSERVATION only, not a statistically
+     confident finding. Do not present it as a headline result.
+     You need ~29 more resolved trades for even basic significance.
+
+==============================================================
+  STEP 5 — Full methodology log
+==============================================================
+  WHAT WAS TRIED
+  ──────────────────────────────────────────────────────────
+  Data source   : Twelve Data REST API, EUR/USD 1-hour candles
+  Sample size   : ~5000 candles requested (varies by plan/availability)
+  Train/test    : 80% chronological train / 20% held-out test
+                  (chronological split — no look-ahead bias)
+  Baseline      : Direction persistence (predict next = current direction)
+                  Locked BEFORE model was built.
+  Model         : Logistic Regression, L2 regularisation, C=1.0
+  Features      : 5 lagged returns, RSI-14 (normalised), close vs SMA-20,
+                  H-L range, 5-period momentum
+  Scaling       : StandardScaler fitted on train only. Applied to test.
+  Tuning        : None. Model was fitted once and evaluated once.
+
+  WHY LOGISTIC REGRESSION (NOT ARIMA)
+  ──────────────────────────────────────────────────────────
+  ARIMA predicts the price level, not direction.
+  Converting ARIMA output to a directional prediction adds noise.
+  Logistic regression directly predicts the binary outcome (up/down)
+  and is simpler to explain in an interview without sacrificing rigour.
+
+  HONEST EXPECTED RESULT
+  ──────────────────────────────────────────────────────────
+  EUR/USD 1-hour returns are very close to a random walk.
+  Accuracy near 50% is the theoretical expectation under the
+  Efficient Market Hypothesis. Not beating the naive baseline
+  is a legitimate, common result — not a failure of methodology.
+
+==============================================================
+  STEP 6 — Final Summary (bring this to your next conversation)
+==============================================================
+
+  SUPABASE DATA
+  Agent decisions logged : 36
+  Trades logged          : 1  (closed: 1)
+
+  PRIMARY RESULT — Statistical model on full historical dataset
+  Dataset                : EUR/USD 1-hour candles, Twelve Data
+  Candles (after NaN drop): 4976
+  Date range             : 2026-01-15 → 2026-08-11
+  Train / test split     : 80% / 20% (chronological, no leakage)
+  Majority class baseline: 50.90%
+  Direction persistence  : 46.59%  ← naive baseline (LOCKED first)
+  Logistic regression    : 52.51%  (+5.92pp vs naive baseline)
+  Features               : lagged returns (×5), RSI-14, SMA-20 deviation,
+                           H-L range, 5-period momentum
+  Tuning                 : None — single fit, single evaluation
+
+  SECONDARY OBSERVATION — LLM agent (small sample, CAVEATED)
+  LLM win rate           : 0.0%  (n=1, 95% CI: [0.0%, 79.3%])
+  Note                   : n=1, 95% Wilson CI [0.0%–79.3%], 79pp width
+  Status                 : Exploratory only — NOT a statistically confident claim
+
+  CV BULLET (factually accurate, interview-defensible)
+  ──────────────────────────────────────────────────────────
+  "Built an autonomous EUR/USD paper trading agent (Next.js 14, Groq
+  llama-3.3-70b-versatile, Twelve Data, Supabase) and implemented a
+  rigorous statistical backtesting layer to evaluate forecasting approaches.
+  Trained a logistic regression model on 4976 hours of EUR/USD price
+  history (2026-01-15 – 2026-08-11)
+  with lagged returns, RSI, and SMA features, achieving 52.5%
+  directional accuracy on a held-out test set vs. a naive persistence
+  baseline of 46.6% — consistent with the near-random-walk
+  behaviour expected under the Efficient Market Hypothesis at this timeframe.
+  Applied proper ML methodology: chronological train/test split, no test-set
+  tuning, and StandardScaler fitted on training data only."
