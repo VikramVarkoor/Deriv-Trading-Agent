@@ -7,6 +7,15 @@ import {
 } from 'recharts';
 import { createClient } from '@supabase/supabase-js';
 import type { AgentMemoryEntry, Trade, AgentRunResult } from '@/types';
+import { useMemo } from 'react';
+import { ActionBadge } from '@/components/ActionBadge';
+import { ConfidenceBar } from '@/components/ConfidenceBar';
+import { WinRateSummary } from '@/components/WinRateSummary';
+import { TradeFilters } from '@/components/TradeFilters';
+import { useAppSelector } from '@/store/hooks';
+import { selectFilters, applyFilters } from '@/store/filtersSlice';
+import { buildPnlSeries } from '@/lib/tradeUtils';
+import ChartLineIcon from '@/icons/chart-line.svg';
 
 const sb = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -76,45 +85,6 @@ function LiveDot() {
   );
 }
 
-function ActionBadge({ action, size = 'sm' }: { action: string; size?: 'sm' | 'md' | 'lg' }) {
-  const c = C[action as Action] ?? { text: '#64748b', bg: 'rgba(100,116,139,0.1)', border: 'rgba(100,116,139,0.2)', glow: 'none' };
-  const arrow = action === 'BUY' ? '↑' : action === 'SELL' ? '↓' : '–';
-  const s = size === 'lg' ? { pad: '10px 26px', fs: 17, afs: 20 }
-          : size === 'md' ? { pad: '6px 16px',  fs: 13, afs: 14 }
-          :                 { pad: '3px 11px',   fs: 10, afs: 11 };
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6,
-      padding: s.pad, borderRadius: 99, fontWeight: 700,
-      fontSize: s.fs, letterSpacing: '0.1em',
-      background: c.bg, color: c.text,
-      border: `1px solid ${c.border}`,
-      boxShadow: size === 'lg' ? c.glow : undefined,
-      fontFamily: 'Space Grotesk, sans-serif',
-    }}>
-      <span style={{ fontSize: s.afs }}>{arrow}</span> {action}
-    </span>
-  );
-}
-
-function ConfidenceBar({ value }: { value: number }) {
-  const pct = Math.round(value * 100);
-  const color = pct >= 75 ? '#34d399' : pct >= 50 ? '#fbbf24' : '#fb7185';
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <div style={{ flex: 1, height: 3, background: 'rgba(255,255,255,0.05)', borderRadius: 99, overflow: 'hidden' }}>
-        <div style={{
-          width: `${pct}%`, height: '100%',
-          background: `linear-gradient(90deg, ${color}, ${color}80)`,
-          borderRadius: 99,
-          transition: 'width 0.8s cubic-bezier(0.4,0,0.2,1)',
-        }} />
-      </div>
-      <span style={{ color, fontWeight: 700, fontSize: 12, minWidth: 32, fontFamily: 'JetBrains Mono, monospace' }}>{pct}%</span>
-    </div>
-  );
-}
-
 function Btn({
   onClick, disabled, variant = 'ghost', children, title,
 }: {
@@ -162,6 +132,8 @@ export default function Dashboard() {
   const [lastRun, setLastRun] = useState<AgentRunResult | null>(null);
   const [error,   setError]   = useState<string | null>(null);
   const [refreshAt, setRefreshAt] = useState(new Date());
+  const filters = useAppSelector(selectFilters);
+  const filteredTrades = useMemo(() => applyFilters(trades, filters), [trades, filters]);
 
   const fetchData = useCallback(async () => {
     const [{ data: memData }, { data: tradeData }] = await Promise.all([
@@ -227,19 +199,7 @@ export default function Dashboard() {
   const pnlColor       = totalPnl >= 0 ? '#34d399' : '#fb7185';
   const actionC        = latestAction ? C[latestAction] : null;
 
-  const pnlChartData = (() => {
-    let cum = 0;
-    return [...trades]
-      .reverse()
-      .filter((t) => t.status === 'CLOSED' && t.pnl != null)
-      .map((t) => {
-        cum += t.pnl!;
-        return {
-          time: new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          pnl: parseFloat(cum.toFixed(2)),
-        };
-      });
-  })();
+  const pnlChartData = buildPnlSeries(trades);
 
   const signalChartData = [...memory]
     .reverse()
@@ -317,6 +277,7 @@ export default function Dashboard() {
             marginBottom: 28,
           }}>
             <LiveDot />
+            <ChartLineIcon style={{ width: 11, height: 11, opacity: 0.7 }} />
             <span style={{
               fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', color: '#34d399',
             }}>
@@ -631,14 +592,18 @@ export default function Dashboard() {
 
           {/* Trade log */}
           <Glass>
-            <SectionLabel>Trade Log</SectionLabel>
-            {trades.length === 0 ? (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 4 }}>
+              <SectionLabel>Trade Log</SectionLabel>
+              <WinRateSummary trades={trades} />
+            </div>
+            <TradeFilters />
+            {filteredTrades.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '52px 0', color: 'rgba(148,163,184,0.35)', fontSize: 13 }}>
-                No trades executed yet
+                No trades match the current filters
               </div>
             ) : (
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <table data-testid="trade-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                   <thead>
                     <tr>
                       {['Time', 'Action', 'Entry', 'SL', 'TP', 'Status', 'P&L'].map((h) => (
@@ -655,7 +620,7 @@ export default function Dashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {trades.map((t) => (
+                    {filteredTrades.map((t) => (
                       <tr key={t.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                         <td style={{ padding: '12px 10px', color: 'rgba(148,163,184,0.45)', fontFamily: 'JetBrains Mono, monospace', fontSize: 10, whiteSpace: 'nowrap' }}>
                           {new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
