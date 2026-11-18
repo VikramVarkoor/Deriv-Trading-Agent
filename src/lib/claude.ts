@@ -111,7 +111,7 @@ export async function getTradeDecision(
 
   const response = await groq.chat.completions.create({
     model: MODEL,
-    max_tokens: 512,
+    max_tokens: 2048,
     temperature: 0.4,
     response_format: { type: 'json_object' },
     messages: [
