@@ -48,8 +48,8 @@ export function getLatestPrice(candles: OHLCVCandle[]): number {
 }
 
 /**
- * Returns a plain-text table of candles for the Claude prompt.
- * Sorted oldest → newest so Claude can read trend direction naturally.
+ * Returns a plain-text table of candles for the LLM prompt.
+ * Sorted oldest → newest so the model can read trend direction naturally.
  */
 export function formatCandlesForPrompt(candles: OHLCVCandle[]): string {
   const header = 'Datetime              | Open    | High    | Low     | Close   | Volume';
@@ -65,7 +65,7 @@ export function formatCandlesForPrompt(candles: OHLCVCandle[]): string {
 
 /**
  * Simple ATR-like volatility estimate: average of (high - low) over all candles.
- * Used by the Claude prompt for context.
+ * Used by the LLM prompt for context.
  */
 export function estimateATR(candles: OHLCVCandle[]): number {
   const ranges = candles.map((c) => parseFloat(c.high) - parseFloat(c.low));

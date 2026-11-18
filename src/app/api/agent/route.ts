@@ -4,7 +4,7 @@
  * The main autonomous agent loop. Call this endpoint to run one cycle:
  *   1. Fetch live EUR/USD OHLCV data from Twelve Data
  *   2. Load open positions + recent memory from Supabase
- *   3. Ask Claude to reason and decide (BUY / SELL / HOLD)
+ *   3. Ask the LLM to reason and decide (BUY / SELL / HOLD)
  *   4. If BUY or SELL: execute on Deriv demo API, persist to Supabase
  *   5. Always persist the decision to agent_memory
  *
@@ -16,7 +16,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 
 import { fetchOHLCV, getLatestPrice } from '@/lib/twelvedata';
-import { getTradeDecision } from '@/lib/claude';
+import { getTradeDecision } from '@/lib/llm';
 import {
   getOpenPositions,
   getRecentMemory,

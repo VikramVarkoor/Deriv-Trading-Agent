@@ -1,8 +1,8 @@
 # Deriv Trading Agent
 
-An autonomous AI trading agent that monitors live EUR/USD forex data, uses Claude to reason about it, and places paper trades on Deriv's demo API. Memory, trades, and agent decisions are persisted in Supabase. A live dashboard shows trades, Claude's reasoning, and running P&L.
+An autonomous AI trading agent that monitors live EUR/USD forex data, uses an LLM to reason about it, and places paper trades on Deriv's demo API. Memory, trades, and agent decisions are persisted in Supabase. A live dashboard shows trades, the model's reasoning, and running P&L.
 
-**Stack:** TypeScript · Next.js 14 · Claude Sonnet · Twelve Data · Deriv Demo API · Supabase · Vercel
+**Stack:** TypeScript · Next.js 14 · Groq-hosted LLM · Twelve Data · Deriv Demo API · Supabase · Vercel
 
 ---
 
@@ -21,7 +21,7 @@ Every 5 min (Vercel cron)
                     │                                    │
                     └─────────────┐  ┌──────────────────┘
                                   ▼  ▼
-                            Claude Sonnet
+                            Groq-hosted LLM
                        (reasoning + decision)
                                   │
                     ┌─────────────┴──────────────┐
@@ -50,7 +50,7 @@ src/
 │   ├── globals.css
 │   └── page.tsx               # Live dashboard
 ├── lib/
-│   ├── claude.ts              # Claude reasoning engine
+│   ├── llm.ts              # LLM reasoning engine
 │   ├── supabase.ts            # DB helpers
 │   ├── twelvedata.ts          # Market data fetcher
 │   └── deriv.ts               # Deriv WebSocket client
@@ -68,7 +68,6 @@ vercel.json                     # Cron schedule (every 5 min)
 
 - Deriv API docs: [api.deriv.com](https://api.deriv.com)
 - Twelve Data: [twelvedata.com](https://twelvedata.com)
-- Anthropic API: [docs.anthropic.com](https://docs.anthropic.com)
 - Supabase: [supabase.com](https://supabase.com)
 
 ---
