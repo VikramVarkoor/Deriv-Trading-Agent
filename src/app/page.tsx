@@ -301,7 +301,7 @@ export default function Dashboard() {
           </h1>
 
           <p style={{ color: 'rgba(148,163,184,0.6)', fontSize: 14, marginBottom: 36, letterSpacing: '0.01em' }}>
-            Groq llama-3.3-70b-versatile · Twelve Data · Supabase · Next.js 14
+            Groq gpt-oss-120b · Twelve Data · Supabase · Next.js 14
           </p>
 
           {/* Latest signal badge + confidence */}
@@ -671,7 +671,7 @@ export default function Dashboard() {
           <span style={{ color: 'rgba(148,163,184,0.3)', fontSize: 11, marginRight: 4 }}>
             last refresh {refreshAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} ·
           </span>
-          {['Groq llama-3.3-70b', 'Twelve Data', 'Deriv Demo', 'Supabase', 'Next.js 14', 'Vercel'].map((s) => (
+          {['Groq gpt-oss-120b', 'Twelve Data', 'Deriv Demo', 'Supabase', 'Next.js 14', 'Vercel'].map((s) => (
             <span key={s} style={{
               padding: '4px 12px',
               background: 'rgba(255,255,255,0.03)',
